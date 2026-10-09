@@ -23,7 +23,7 @@ GET /posts/:id/images
 ```
 
 Two processes share one codebase: **api** (Express) and **worker** (pg-boss jobs). Both use PostgreSQL 16 +
-pgvector. Design docs: [DESIGN.md](docs/DESIGN.md) · [SPEC.md](docs/SPEC.md) ·
+pgvector. **First-time setup: [docs/SETUP.md](docs/SETUP.md).** Design docs: [DESIGN.md](docs/DESIGN.md) · [SPEC.md](docs/SPEC.md) ·
 [GUARD_AND_EVAL.md](docs/GUARD_AND_EVAL.md) · [ROADMAP.md](docs/ROADMAP.md).
 
 ## Run it
