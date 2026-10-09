@@ -18,3 +18,23 @@ skeleton (env validation, error handling, health route, Dockerfile, compose file
 
 **What I need to be able to explain:** why `subject_label` exists in addition to `subject` (see
 docs/GUARD_AND_EVAL.md), and why the app is built with `createApp(deps)` (so tests run without a database).
+
+## 2026-10-09 · Phase 1: design, taxonomy, corpus
+
+**Done:** finalized the subject-label taxonomy (`src/config/taxonomy.ts`, with tests for fox ≠ wolf and
+generic → specific matching); hand-picked 50 Pexels images (10 each of red fox, gray wolf, dog, bear, deer,
+including the planned hard cases); wrote `npm run corpus:download` (validate → download → resize to ≤ 800px);
+downloaded and checked the images; committed them (3.6 MB).
+
+**Where AI helped:** Claude Code wrote the taxonomy, the download script and the doc updates, formatted my
+links into manifest entries, and checked each page title before adding it.
+
+**Where AI was wrong or needed correcting:**
+- It built a Pexels API auto-search script before checking whether Pexels was issuing keys. It wasn't
+  (issuance paused), so the script was deleted and I picked every image by hand.
+- Its first fallback relied on Unsplash's page download link, which was rate-limited (HTTP 429). The corpus ended up Pexels-only.
+- The first schema required a photographer name for every entry. Neither license requires attribution, so the field was dropped.
+
+**My corrections to the AI's suggestions / my own picks:** a "two jackals" photo got into my red-fox batch and
+the title check caught it, so I swapped it. I sent a batch of mixed fox species as "gray fox" when the plan needed
+gray *wolves*, and replaced it with real wolves.

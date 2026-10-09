@@ -9,9 +9,10 @@ Self-paced. Do the phases in order, and don't start the next phase until the cur
 - [x] Stub `README.md`, `EVIDENCE.md`, `BUILDLOG.md`, `capstone.yaml`
 
 ## Phase 1 · Design (≈4–6 h)
-- [ ] [DESIGN.md](DESIGN.md), [SPEC.md](SPEC.md), [GUARD_AND_EVAL.md](GUARD_AND_EVAL.md) reviewed
-- [ ] Taxonomy list finalized
-- [ ] 50-image manifest built, licenses checked, download script working
+- [x] [DESIGN.md](DESIGN.md), [SPEC.md](SPEC.md), [GUARD_AND_EVAL.md](GUARD_AND_EVAL.md) reviewed
+- [x] Taxonomy list finalized (`src/config/taxonomy.ts`)
+- [x] 50-image manifest hand-picked from Pexels (`data/manifest.json`); download script written
+- [x] Images downloaded with `npm run corpus:download` and checked by eye (incl. the 4 `SPECIES UNVERIFIED` deer)
 - **GATE:** design docs committed
 
 ## Phase 2 · Image understanding pipeline (≈10–14 h)

@@ -18,7 +18,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "corpus:download": "tsx scripts/download-corpus.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
@@ -26,6 +27,7 @@
     "pg": "^8.23.1",
     "pg-boss": "^12.37.1",
     "pino": "^10.4.0",
+    "sharp": "^0.35.5",
     "zod": "^4.6.5"
   },
   "devDependencies": {

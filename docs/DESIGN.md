@@ -91,6 +91,7 @@ Add new entries at the bottom; never rewrite old ones. Mark an entry as supersed
 | 9 | 2026-10-09 | **Notional + billed cost logged separately** | Free tier bills $0, but the budget guard needs a realistic number | Log tokens only |
 | 10 | 2026-10-09 | **`SEMANTIC_SIMILARITY` task type on both sides** to start | Recommended by the brief; compare against RETRIEVAL_DOCUMENT/QUERY in eval if precision is weak | Asymmetric task types |
 | 11 | 2026-10-09 | **Model ids in env** (`GEMINI_VISION_MODEL`, `GEMINI_EMBED_MODEL`) | Free-tier model names change; pick the current ones from AI Studio at build time | Hard-coded ids |
+| 12 | 2026-10-09 | **Corpus hand-picked from Pexels only**; manifest holds just page URL + label | Pexels API keys were paused, so an auto-search script was dropped; Pexels page URLs map directly to image URLs, and its license needs no attribution | Unsplash (scripted downloads rate-limited), Openverse API |
+| 13 | 2026-10-09 | **Resized images committed** in `data/images/` (50 files, 3.6 MB) | Under the 5 MB target; evaluators reproduce results offline without depending on Pexels links staying up | Manifest + download script only |
 
-**Open questions:** exact Gemini model ids and free-tier rate limits (check at the start of Phase 2) ·
-whether to commit images or only download them by script (decide once the resized corpus size is known; target < 5 MB).
+**Open questions:** exact Gemini model ids and free-tier rate limits (check at the start of Phase 2).

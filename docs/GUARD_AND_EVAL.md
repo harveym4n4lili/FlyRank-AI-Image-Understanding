@@ -63,22 +63,27 @@ wolf image, and that R3 still rejects it.
 
 ## Image corpus
 
-**50 images, 5 categories × 10**, from Unsplash and Pexels only (free licenses; attribution recorded anyway).
+**50 images, 5 animals × 10, hand-picked from Pexels** (free license, no attribution required). The Pexels API
+was closed to new keys, so every photo was chosen manually and each one's page title was checked before it was added
+(e.g. a "two jackals" result and a batch of mixed fox species were rejected).
 
-| Category | Count | Deliberate hard cases |
+| Animal | Labels | Deliberate hard cases (`notes` starts with `HARD CASE`) |
 |---|---|---|
-| Red fox | 10 | a fox far away in snow (low-confidence candidate), a fox cub |
-| Gray wolf | 10 | 2 wolves in forest settings similar to the fox shots (the near-miss) |
-| Dog | 10 | 2 husky / wolf-like breeds, a red shiba (orange fur, like a fox) |
-| Bear | 10 | brown and black bears |
-| Deer | 10 | a silhouette at dusk (low-confidence candidate) |
+| Red fox | 10 `red_fox` | `red-fox-09` distant fox in snow (low-confidence candidate), `red-fox-10` fox cub |
+| Gray wolf | 10 `gray_wolf` | `gray-wolf-05`, `06` forest scenes like the fox shots (the near-miss) |
+| Dog | 10 `dog` | `dog-08` malamute, `dog-09` wolf-like dog, `dog-10` shiba inu (orange fur, like a fox) |
+| Bear | 6 `brown_bear` + 4 `black_bear` | the grizzlies count as brown bears; `black-bear-03`, `04` are Asiatic black bears |
+| Deer | 6 `white_tailed_deer` + 4 `red_deer` | `white-tailed-deer-06` silhouette (low-confidence candidate) |
 
 The hard cases make Probe 1 (at least one image flagged) and Probe 2 (wolf and dog rank clearly lower) real tests rather than staged ones.
+**Four deer** (`white-tailed-deer-04`, `05`, `red-deer-01`, `02`) have generic page titles; their `notes` say
+`SPECIES UNVERIFIED` until they've been checked by eye.
 
-**Storage:** `data/manifest.json` lists `{ id, file, source_url, download_url, photographer, license, category_expected }`.
-`npm run corpus:download` fetches the images, resizes them to ≤ 800px JPEG with `sharp`, and writes them to `data/images/`.
-If the total stays under ~5 MB, the images are committed so evaluators can reproduce the results offline.
-`category_expected` is used only for evaluation and is never sent to the model or the guard.
+**Storage:** each `data/manifest.json` entry is `{ id, source_url, expected_label, notes? }`, where `source_url`
+is the Pexels photo page. `npm run corpus:download` derives the direct image URL from the page link, resizes each image
+to ≤ 800px JPEG with `sharp`, and writes it to `data/images/<id>.jpg`. If the total stays under ~5 MB, the images
+are committed so evaluators can reproduce the results offline. `expected_label` is used only for evaluation and is
+never sent to the model or the guard.
 
 **Calibration:** self-reported model confidence is poorly calibrated, so an image is also flagged when
 `subject_label = unknown` or `category = other`. In Phase 2 the flagged images get checked by eye, and that check is logged in BUILDLOG.md.
