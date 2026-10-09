@@ -23,6 +23,8 @@ export function imageProcessor(deps: {
   vision: VisionProvider;
   tracker: CostTracker;
   dataDir: string;
+  /** Called after tags are saved, e.g. to queue the image's embedding job. */
+  onTagged?: (imageId: string) => Promise<void>;
 }) {
   return {
     // Tags one image. Throws on a model error or invalid output so the job is retried;
@@ -69,6 +71,7 @@ export function imageProcessor(deps: {
       await deps.tracker.record(meta, { outcome: "ok", usage: result.usage, latencyMs: result.latencyMs });
       const decision = decideFlag(parsed.tags);
       await deps.images.saveTags(image.id, parsed.tags, decision, parsed.tags);
+      await deps.onTagged?.(image.id);
       return { status: decision.status, flagReason: decision.flagReason, label: parsed.tags.subject_label };
     },
 

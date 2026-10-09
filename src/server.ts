@@ -1,12 +1,17 @@
 import { loadEnv } from "./config/env.js";
 import { createDb } from "./db/client.js";
 import { createApp } from "./app.js";
-import { ingestQueue, startBoss } from "./jobs/queues.js";
+import { ingestQueue, matchingQueue, startBoss } from "./jobs/queues.js";
 import { logger } from "./lib/logger.js";
 import { aiCallsRepo } from "./repositories/aiCalls.js";
+import { embeddingsRepo } from "./repositories/embeddings.js";
 import { imagesRepo } from "./repositories/images.js";
+import { postsRepo } from "./repositories/posts.js";
+import { suggestionsRepo } from "./repositories/suggestions.js";
 import { workspacesRepo } from "./repositories/workspaces.js";
 import { ingestionService } from "./services/ingestion.js";
+import { matchingService } from "./services/matching.js";
+import { postsService } from "./services/posts.js";
 import { queryService } from "./services/queries.js";
 
 const env = loadEnv();
@@ -16,6 +21,8 @@ boss.on("error", (err) => logger.error({ err }, "pg-boss error"));
 
 const images = imagesRepo(database.db);
 const workspaces = workspacesRepo(database.db);
+const posts = postsRepo(database.db);
+const embeddings = embeddingsRepo(database.db);
 
 const app = createApp({
   checkDb: database.ping,
@@ -26,6 +33,8 @@ const app = createApp({
     aiCalls: aiCallsRepo(database.db),
     limits: { maxUsdPerDay: env.AI_BUDGET_USD, maxCallsPerDay: env.AI_MAX_CALLS_PER_DAY },
   }),
+  posts: postsService({ posts, embeddings, queue: matchingQueue(boss) }),
+  matching: matchingService({ posts, embeddings, suggestions: suggestionsRepo(database.db) }),
 });
 
 const server = app.listen(env.PORT, () => {

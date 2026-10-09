@@ -13,4 +13,10 @@ endpoints:
   - GET /images/:id
   - GET /costs
   - GET /costs/summary
-  # Phase 3: GET /posts/:id/images, POST /posts/:id/images/:imageId/check
+  - POST /jobs/embed-images
+  - POST /jobs/embed-posts
+  - POST /posts
+  - GET /posts
+  - GET /posts/:id
+  - GET /posts/:id/images
+  - POST /posts/:id/images/:imageId/check

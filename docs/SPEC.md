@@ -53,13 +53,15 @@ A 500 only happens for genuine bugs, and the error is logged without secrets.
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/jobs/ingest-images` | `{ dir? }` → **202** `{ jobId }`. One job per file; files already ingested (same content hash) are skipped |
-| POST | `/jobs/embed-posts` | **202** `{ jobId }`. Embeds every post that is still `pending` |
+| POST | `/jobs/embed-images` | **202** `{ enqueued }`. Backfill: embeds tagged/flagged images with no embedding (new images are embedded automatically after tagging) |
+| POST | `/jobs/embed-posts` | **202** `{ enqueued }`. Re-queues posts that are still `pending` or `failed` |
 | GET | `/jobs/:id` | `{ state, total, done, failed, flagged, progress }` |
 | GET | `/images?status=&label=` | filters are validated against the enums |
 | GET | `/images/:id` | tags, confidence, flag reason, attempts, cost total |
 | POST | `/posts` | `{ slug, title, body }`. Idempotent on slug: **201**, or **200** if it already exists. Enqueues extraction and embedding |
+| GET | `/posts?limit=` | latest posts with status and extracted subject |
 | GET | `/posts/:id` | includes the extracted subject, label and category |
-| GET | `/posts/:id/images?limit=5` | ranked candidates + guard verdicts (shape below). **409** if the post is not embedded yet |
+| GET | `/posts/:id/images?limit=5` | the top `limit` (1–20) candidates by similarity, each run through the guard; every decision is stored in `suggestions` (shape below). **409** `POST_NOT_READY` if the post is not embedded yet |
 | POST | `/posts/:id/images/:imageId/check` | runs the guard on one forced image (Probe 3). Creates no suggestion |
 | GET | `/review?status=pending` | server-rendered HTML table; JSON with `Accept: application/json` |
 | GET | `/suggestions/:id` | the full "why": reasons, thresholds (`guard_version`), image tags, similarity, review history |
@@ -74,13 +76,15 @@ A 500 only happens for genuine bugs, and the error is logged without secrets.
 {
   "post": { "id": "...", "title": "The behavior of red foxes", "subject_label": "red_fox" },
   "result": "MATCH",
+  "guardVersion": "576dc0a38236",
   "suggestions": [
-    { "imageId": "...", "rank": 1, "similarity": 0.87, "verdict": "ACCEPTED",
+    { "suggestionId": "...", "imageId": "...", "rank": 1, "similarity": 0.665, "verdict": "ACCEPTED", "file": "images/red-fox-09.jpg",
       "caption": "A red fox standing in a forest",
       "reasons": [{ "code": "SUBJECT_OK", "message": "Subject matches: red fox" }] }
   ],
+  "alsoPassedNotShown": 4,
   "rejected": [
-    { "imageId": "...", "rank": 2, "similarity": 0.81, "verdict": "REJECTED",
+    { "suggestionId": "...", "imageId": "...", "rank": 13, "similarity": 0.499, "verdict": "REJECTED",
       "reasons": [{ "code": "SUBJECT_MISMATCH", "message": "Subject mismatch: expected red fox, detected gray wolf" }] }
   ]
 }

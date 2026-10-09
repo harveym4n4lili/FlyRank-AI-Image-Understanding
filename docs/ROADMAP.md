@@ -25,12 +25,12 @@ Self-paced. Do the phases in order, and don't start the next phase until the cur
 - **GATE:** all 50 images are tagged or flagged, `/costs/summary` shows every call — ✅ passed 2026-10-09 (49 tagged, 1 flagged, 50 cost rows)
 
 ## Phase 3 · Matching engine (≈12–16 h)
-- [ ] Post creation + subject extraction + embedding jobs
-- [ ] Image embeddings (caption + subject + attributes)
-- [ ] pgvector cosine ranking
-- [ ] Guard as a pure module, with unit tests first (fox ✓, wolf ✗, dog ✗, flagged ✗, below threshold ✗)
-- [ ] `GET /posts/:id/images`, the `/check` endpoint, `NO_CONFIDENT_MATCH`
-- **GATE:** fox post ranks the fox first; the guard refuses the wolf
+- [x] Post creation + subject extraction + embedding jobs
+- [x] Image embeddings (caption + subject + attributes)
+- [x] pgvector cosine ranking
+- [x] Guard as a pure module, with unit tests first (fox ✓, wolf ✗, dog ✗, flagged ✗, below threshold ✗)
+- [x] `GET /posts/:id/images`, the `/check` endpoint, `NO_CONFIDENT_MATCH`
+- **GATE:** fox post ranks the fox first; the guard refuses the wolf — ✅ passed 2026-10-09 (fox #1 at 0.665; best wolf #13, best dog #15; forced wolf → SUBJECT_MISMATCH)
 
 ## Phase 4 · Production layer (≈8–12 h)
 - [ ] Review endpoints + HTML table + idempotency keys

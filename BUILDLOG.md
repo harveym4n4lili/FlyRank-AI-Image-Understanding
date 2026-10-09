@@ -65,3 +65,33 @@ proved retries live by running a worker against a non-existent model on a throwa
 - The model's self-reported confidence is high almost everywhere (0.90–0.99); only one image fell below 0.70. Calibration
   is something to watch in Phase 4.
 - Prices in `src/config/pricing.ts` are notional assumptions, not verified list prices.
+
+## 2026-10-09 · Phase 3: matching engine & mismatch guard
+
+**Done:** pgvector (custom migration to enable the extension, then posts, image/post embeddings with HNSW cosine
+indexes, and a suggestions table); post subject extraction (Flash, Zod-validated like vision output); embedding jobs
+for images (chained automatically after tagging, plus a backfill endpoint) and posts; the mismatch guard as a pure
+module (rules R1–R5, every failure explained); `GET /posts/:id/images` (rank → guard → store → explain) and the forced
+`/check` endpoint; 7 demo posts seeded by `seed`; 76 tests.
+
+**Result:** fox post → foxes accepted, best wolf #13 and best dog #15 rejected. The "Vulpes vulpes" post (never says
+"red fox") → foxes. Forced wolf → "Subject mismatch: expected red fox, detected gray wolf". Penguin and sourdough posts
+→ NO_CONFIDENT_MATCH with reasons. An arctic-fox post refused a red fox even at similarity 0.61.
+
+**Where AI helped:** Claude Code designed and wrote the guard, the ranking query and the jobs, and ran every probe live.
+
+**Where AI was wrong or needed correcting:**
+- **The starting thresholds were guesses and they were wrong.** With T_SIM 0.70 every post, including the fox post,
+  returned NO_CONFIDENT_MATCH: this embedding model scores a long post against a one-line caption at 0.54–0.69 even for
+  the right animal. The thresholds were lowered to 0.55 / 0.65 from the observed numbers (decision #18). That's still
+  provisional until the Phase 4 sweep. Lesson: the brief is right that thresholds come from data, not intuition.
+- It first marked a failed *embedding* by reusing the "attempt failed" method, which would have reset an already tagged
+  image to `pending`. Caught in review and replaced with a method that only records the error.
+- The Gemini SDK's embedding response has no token usage, so embeddings call the REST endpoint directly to keep cost
+  tracking real.
+- Candidates that passed the guard but fell outside the top 3 were silently missing from the response; the count is now
+  returned as `alsoPassedNotShown`.
+
+**Honest notes:** the snowy fox (`red-fox-09`) ranks first for both fox posts; its caption mentions the snow and fur,
+which the post text also describes. The guard depends on the model's labels: if vision mislabels an image, the subject
+rule trusts that label (which is why low-confidence images are flagged).

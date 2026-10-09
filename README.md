@@ -4,7 +4,7 @@ Looks at an image library, understands what is in each image, and matches the ri
 post, with a **mismatch guard** that refuses wrong matches and explains why. A red-fox post gets the
 red-fox photo, never the wolf. When nothing is good enough, the answer is "no confident match".
 
-> **Status:** Phases 0–2 done: the image pipeline tags all 50 images (49 tagged, 1 low-confidence flagged) with per-call cost tracking. Phase 3 (matching + guard) is next. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status:** Phases 0–3 done: images are tagged and embedded, posts are matched by meaning, and the mismatch guard refuses wrong matches with reasons. Phase 4 (review API + eval) is next. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Architecture
 
@@ -23,7 +23,7 @@ GET /posts/:id/images
 ```
 
 Two processes share one codebase: **api** (Express) and **worker** (pg-boss jobs). Both use PostgreSQL 16 +
-pgvector. **First-time setup: [docs/SETUP.md](docs/SETUP.md).** Design docs: [DESIGN.md](docs/DESIGN.md) · [SPEC.md](docs/SPEC.md) ·
+pgvector. **First-time setup: [docs/SETUP.md](docs/SETUP.md).** Checking a phase: [docs/TESTING.md](docs/TESTING.md). Design docs: [DESIGN.md](docs/DESIGN.md) · [SPEC.md](docs/SPEC.md) ·
 [GUARD_AND_EVAL.md](docs/GUARD_AND_EVAL.md) · [ROADMAP.md](docs/ROADMAP.md).
 
 ## Run it
@@ -36,7 +36,8 @@ docker compose up --build     # db + api (http://localhost:3000) + worker
 curl http://localhost:3000/health
 ```
 
-Seed the demo workspace (its API key is `DEMO_API_KEY` from `.env`), then tag the corpus:
+Seed the demo workspace and 7 demo blog posts (the API key is `DEMO_API_KEY` from `.env`), then tag the corpus.
+Tagged images are embedded automatically; posts are understood and embedded when created:
 
 ```bash
 docker compose exec -T api node dist/db/seed.js
@@ -44,6 +45,11 @@ curl -X POST -H "X-Api-Key: $DEMO_API_KEY" -H "Content-Type: application/json" -
 curl -H "X-Api-Key: $DEMO_API_KEY" http://localhost:3000/jobs/<jobId>      # progress
 curl -H "X-Api-Key: $DEMO_API_KEY" "http://localhost:3000/images?status=flagged"
 curl -H "X-Api-Key: $DEMO_API_KEY" http://localhost:3000/costs/summary
+
+# matching (post ids from GET /posts)
+curl -H "X-Api-Key: $DEMO_API_KEY" http://localhost:3000/posts
+curl -H "X-Api-Key: $DEMO_API_KEY" "http://localhost:3000/posts/<postId>/images?limit=5"
+curl -X POST -H "X-Api-Key: $DEMO_API_KEY" http://localhost:3000/posts/<postId>/images/<imageId>/check
 ```
 
 ### Local development

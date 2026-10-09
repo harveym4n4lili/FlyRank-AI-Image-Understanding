@@ -48,11 +48,13 @@ compares labels. The taxonomy also defines compatibility: a generic `fox` post a
 | Name | Start | Meaning |
 |---|---|---|
 | `T_CONF` | 0.70 | below this, an image is flagged at ingestion and fails R5 |
-| `T_SIM` | 0.70 | similarity floor |
-| `T_SIM_STRICT` | 0.80 | floor when the post subject is unknown |
+| `T_SIM` | 0.55 | similarity floor |
+| `T_SIM_STRICT` | 0.65 | floor when the post subject is unknown |
 | `TOP_K` | 3 | max accepted suggestions per post |
 
-These are placeholders until Phase 4. Tuning (`npm run eval -- --sweep`):
+The first guesses (0.70 / 0.80) rejected *every* match: with `gemini-embedding-2`, a long post vs a one-sentence
+caption scores 0.54–0.69 even for the right animal. The values above were set from the Phase 3 demo-post run
+(decision #18) and are still provisional. The Phase 4 sweep finalises them (`npm run eval -- --sweep`):
 1. Sweep `T_SIM` from 0.50 to 0.90 in steps of 0.02 over the eval set.
 2. For each value, record top-1 precision, abstention accuracy and coverage.
 3. Pick the value with the highest precision that still answers at least 90% of positive posts. Prefer refusing over being wrong.

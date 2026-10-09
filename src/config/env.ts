@@ -14,6 +14,7 @@ const EnvSchema = z.object({
   GEMINI_EMBED_MODEL: z.string().min(1).optional(),
 
   GEMINI_MAX_RPM: z.coerce.number().int().positive().default(8),
+  GEMINI_EMBED_MAX_RPM: z.coerce.number().int().positive().default(30),
 
   AI_BUDGET_USD: z.coerce.number().nonnegative().default(1),
   AI_MAX_CALLS_PER_DAY: z.coerce.number().int().positive().default(500),

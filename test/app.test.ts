@@ -3,6 +3,8 @@ import request from "supertest";
 import { createApp, type AppDeps } from "../src/app.js";
 import { hashApiKey } from "../src/http/auth.js";
 import type { IngestionService } from "../src/services/ingestion.js";
+import type { MatchingService } from "../src/services/matching.js";
+import type { PostsService } from "../src/services/posts.js";
 import type { QueryService } from "../src/services/queries.js";
 
 const KEY = "test-key";
@@ -19,14 +21,27 @@ function makeApp(overrides: Partial<AppDeps> = {}) {
     listCosts: vi.fn(async () => []),
     costSummary: vi.fn(async () => ({ totals: { calls: 0 } })),
   } as unknown as QueryService;
+  const posts = {
+    create: vi.fn(async (_ws: string, input: { slug: string }) => ({ post: { id: "p1", ...input }, created: input.slug !== "existing" })),
+    get: vi.fn(),
+    list: vi.fn(async () => []),
+    enqueuePendingPosts: vi.fn(async () => ({ enqueued: 0 })),
+    enqueueMissingImageEmbeddings: vi.fn(async () => ({ enqueued: 50 })),
+  } as unknown as PostsService;
+  const matching = {
+    matchForPost: vi.fn(async () => ({ result: "MATCH" })),
+    checkCandidate: vi.fn(async () => ({ verdict: "REJECTED" })),
+  } as unknown as MatchingService;
   const deps: AppDeps = {
     checkDb: async () => true,
     resolveWorkspace: async (hash) => (hash === hashApiKey(KEY) ? WORKSPACE : null),
     ingestion,
     queries,
+    posts,
+    matching,
     ...overrides,
   };
-  return { app: createApp(deps), deps, ingestion, queries };
+  return { app: createApp(deps), deps, ingestion, queries, posts, matching };
 }
 
 describe("health", () => {
@@ -72,6 +87,10 @@ describe("validation at the boundary (4xx, never 500)", () => {
     ["limit out of range", () => request(makeApp().app).get("/costs?limit=9999").set("X-Api-Key", KEY)],
     ["path traversal in dir", () => request(makeApp().app).post("/jobs/ingest-images").set("X-Api-Key", KEY).send({ dir: "../etc" })],
     ["unexpected body field", () => request(makeApp().app).post("/jobs/ingest-images").set("X-Api-Key", KEY).send({ dir: "images", force: true })],
+    ["post without body", () => request(makeApp().app).post("/posts").set("X-Api-Key", KEY).send({ slug: "red-fox", title: "Red foxes" })],
+    ["post slug with spaces", () => request(makeApp().app).post("/posts").set("X-Api-Key", KEY).send({ slug: "Red Fox", title: "Red foxes", body: "x".repeat(30) })],
+    ["match limit too high", () => request(makeApp().app).get(`/posts/${WORKSPACE}/images?limit=500`).set("X-Api-Key", KEY)],
+    ["check with non-uuid image", () => request(makeApp().app).post(`/posts/${WORKSPACE}/images/wolf/check`).set("X-Api-Key", KEY)],
   ];
 
   it.each(cases)("%s → 400", async (_name, send) => {
@@ -104,5 +123,27 @@ describe("POST /jobs/ingest-images", () => {
     expect(res.status).toBe(202);
     expect(res.body.jobId).toBe("b");
     expect(ingestion.startBatch).toHaveBeenCalledWith(WORKSPACE, "images");
+  });
+});
+
+describe("posts & matching routes", () => {
+  const body = { slug: "red-fox-behaviour", title: "The behaviour of red foxes", body: "Red foxes are clever and adaptable hunters." };
+
+  it("creates a post with 201, and returns 200 for an existing slug", async () => {
+    const { app } = makeApp();
+    await request(app).post("/posts").set("X-Api-Key", KEY).send(body).expect(201);
+    await request(app).post("/posts").set("X-Api-Key", KEY).send({ ...body, slug: "existing" }).expect(200);
+  });
+
+  it("passes the workspace, post id and limit to matching", async () => {
+    const { app, matching } = makeApp();
+    await request(app).get(`/posts/${WORKSPACE}/images?limit=3`).set("X-Api-Key", KEY).expect(200);
+    expect(matching.matchForPost).toHaveBeenCalledWith(WORKSPACE, WORKSPACE, 3);
+  });
+
+  it("queues missing image embeddings with 202", async () => {
+    const res = await request(makeApp().app).post("/jobs/embed-images").set("X-Api-Key", KEY).send({});
+    expect(res.status).toBe(202);
+    expect(res.body).toEqual({ enqueued: 50 });
   });
 });

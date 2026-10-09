@@ -130,6 +130,11 @@ export function imagesRepo(db: Db) {
       });
     },
 
+    // Notes an error without touching the tagging status (used when only the embedding step failed).
+    async setLastError(imageId: string, error: string) {
+      await db.update(images).set({ lastError: error }).where(eq(images.id, imageId));
+    },
+
     async markFailed(imageId: string, reason: string) {
       await db.update(images).set({ status: "failed", lastError: reason }).where(eq(images.id, imageId));
     },
