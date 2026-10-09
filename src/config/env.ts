@@ -13,9 +13,14 @@ const EnvSchema = z.object({
   GEMINI_VISION_MODEL: z.string().min(1).optional(),
   GEMINI_EMBED_MODEL: z.string().min(1).optional(),
 
+  GEMINI_MAX_RPM: z.coerce.number().int().positive().default(8),
+
   AI_BUDGET_USD: z.coerce.number().nonnegative().default(1),
   AI_MAX_CALLS_PER_DAY: z.coerce.number().int().positive().default(500),
   ALERT_WEBHOOK_URL: z.url().optional(),
+
+  // Root folder for image ingestion; request paths must stay inside it.
+  DATA_DIR: z.string().min(1).default("data"),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

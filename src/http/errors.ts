@@ -1,16 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
+import { AppError } from "../lib/errors.js";
 import { logger } from "../lib/logger.js";
-
-export class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 
 export const notFound: RequestHandler = (req, res) => {
   res.status(404).json({ error: { code: "NOT_FOUND", message: `No route for ${req.method} ${req.path}` } });
@@ -23,7 +14,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     });
     return;
   }
-  if (err instanceof HttpError) {
+  if (err instanceof AppError) {
     res.status(err.status).json({ error: { code: err.code, message: err.message } });
     return;
   }

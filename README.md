@@ -4,7 +4,7 @@ Looks at an image library, understands what is in each image, and matches the ri
 post, with a **mismatch guard** that refuses wrong matches and explains why. A red-fox post gets the
 red-fox photo, never the wolf. When nothing is good enough, the answer is "no confident match".
 
-> **Status:** Phase 0 done (repo + skeleton). Phase 1 (design) is in progress. See [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status:** Phases 0–2 done: the image pipeline tags all 50 images (49 tagged, 1 low-confidence flagged) with per-call cost tracking. Phase 3 (matching + guard) is next. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Architecture
 
@@ -36,7 +36,15 @@ docker compose up --build     # db + api (http://localhost:3000) + worker
 curl http://localhost:3000/health
 ```
 
-Seed step: *added in Phase 2.*
+Seed the demo workspace (its API key is `DEMO_API_KEY` from `.env`), then tag the corpus:
+
+```bash
+docker compose exec -T api node dist/db/seed.js
+curl -X POST -H "X-Api-Key: $DEMO_API_KEY" -H "Content-Type: application/json" -d '{}' http://localhost:3000/jobs/ingest-images
+curl -H "X-Api-Key: $DEMO_API_KEY" http://localhost:3000/jobs/<jobId>      # progress
+curl -H "X-Api-Key: $DEMO_API_KEY" "http://localhost:3000/images?status=flagged"
+curl -H "X-Api-Key: $DEMO_API_KEY" http://localhost:3000/costs/summary
+```
 
 ### Local development
 

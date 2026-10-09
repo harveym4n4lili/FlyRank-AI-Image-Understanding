@@ -1,33 +1,108 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import request from "supertest";
-import { createApp } from "../src/app.js";
+import { createApp, type AppDeps } from "../src/app.js";
+import { hashApiKey } from "../src/http/auth.js";
+import type { IngestionService } from "../src/services/ingestion.js";
+import type { QueryService } from "../src/services/queries.js";
 
-describe("app skeleton", () => {
-  it("reports ok when the database is reachable", async () => {
-    const res = await request(createApp({ checkDb: async () => true })).get("/health");
+const KEY = "test-key";
+const WORKSPACE = "11111111-1111-4111-8111-111111111111";
+
+function makeApp(overrides: Partial<AppDeps> = {}) {
+  const ingestion = {
+    startBatch: vi.fn(async () => ({ jobId: "b", total: 2, enqueued: 2, skipped: 0 })),
+    batchProgress: vi.fn(),
+  } as unknown as IngestionService;
+  const queries = {
+    listImages: vi.fn(async () => []),
+    getImage: vi.fn(),
+    listCosts: vi.fn(async () => []),
+    costSummary: vi.fn(async () => ({ totals: { calls: 0 } })),
+  } as unknown as QueryService;
+  const deps: AppDeps = {
+    checkDb: async () => true,
+    resolveWorkspace: async (hash) => (hash === hashApiKey(KEY) ? WORKSPACE : null),
+    ingestion,
+    queries,
+    ...overrides,
+  };
+  return { app: createApp(deps), deps, ingestion, queries };
+}
+
+describe("health", () => {
+  it("reports ok when the database is reachable, without an API key", async () => {
+    const res = await request(makeApp().app).get("/health");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "ok", db: true });
   });
 
   it("reports 503 when the database check fails", async () => {
-    const app = createApp({ checkDb: async () => { throw new Error("down"); } });
+    const { app } = makeApp({ checkDb: async () => { throw new Error("down"); } });
     const res = await request(app).get("/health");
     expect(res.status).toBe(503);
     expect(res.body.db).toBe(false);
   });
+});
 
-  it("returns a JSON 404 for unknown routes", async () => {
-    const res = await request(createApp({ checkDb: async () => true })).get("/nope");
-    expect(res.status).toBe(404);
-    expect(res.body.error.code).toBe("NOT_FOUND");
+describe("auth", () => {
+  it("rejects requests without an API key with 401", async () => {
+    const res = await request(makeApp().app).get("/images");
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe("UNAUTHENTICATED");
   });
 
-  it("returns 400, not 500, for malformed JSON", async () => {
-    const res = await request(createApp({ checkDb: async () => true }))
-      .post("/health")
+  it("rejects an unknown API key with 401", async () => {
+    const res = await request(makeApp().app).get("/images").set("X-Api-Key", "wrong");
+    expect(res.status).toBe(401);
+  });
+
+  it("scopes calls to the key's workspace", async () => {
+    const { app, queries } = makeApp();
+    await request(app).get("/images?status=flagged").set("X-Api-Key", KEY).expect(200);
+    expect(queries.listImages).toHaveBeenCalledWith(WORKSPACE, { status: "flagged", limit: 100, offset: 0 });
+  });
+});
+
+describe("validation at the boundary (4xx, never 500)", () => {
+  const cases: [string, () => request.Test][] = [
+    ["unknown status filter", () => request(makeApp().app).get("/images?status=bogus").set("X-Api-Key", KEY)],
+    ["unknown label filter", () => request(makeApp().app).get("/images?label=cat").set("X-Api-Key", KEY)],
+    ["non-uuid image id", () => request(makeApp().app).get("/images/123").set("X-Api-Key", KEY)],
+    ["non-uuid job id", () => request(makeApp().app).get("/jobs/abc").set("X-Api-Key", KEY)],
+    ["limit out of range", () => request(makeApp().app).get("/costs?limit=9999").set("X-Api-Key", KEY)],
+    ["path traversal in dir", () => request(makeApp().app).post("/jobs/ingest-images").set("X-Api-Key", KEY).send({ dir: "../etc" })],
+    ["unexpected body field", () => request(makeApp().app).post("/jobs/ingest-images").set("X-Api-Key", KEY).send({ dir: "images", force: true })],
+  ];
+
+  it.each(cases)("%s → 400", async (_name, send) => {
+    const res = await send();
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_FAILED");
+  });
+
+  it("returns 400 for malformed JSON", async () => {
+    const res = await request(makeApp().app)
+      .post("/jobs/ingest-images")
+      .set("X-Api-Key", KEY)
       .set("Content-Type", "application/json")
       .send("{bad json");
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("INVALID_JSON");
+  });
+
+  it("returns a JSON 404 for unknown routes", async () => {
+    const res = await request(makeApp().app).get("/nope").set("X-Api-Key", KEY);
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
+});
+
+describe("POST /jobs/ingest-images", () => {
+  it("accepts the batch with 202 and defaults dir to images", async () => {
+    const { app, ingestion } = makeApp();
+    const res = await request(app).post("/jobs/ingest-images").set("X-Api-Key", KEY).send({});
+    expect(res.status).toBe(202);
+    expect(res.body.jobId).toBe("b");
+    expect(ingestion.startBatch).toHaveBeenCalledWith(WORKSPACE, "images");
   });
 });

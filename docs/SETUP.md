@@ -36,8 +36,9 @@ The code can't do these steps for me. Work top to bottom and tick each box as it
     "https://generativelanguage.googleapis.com/v1beta/models" | grep '"name"'
   ```
 - [x] Choose the models and write them in `.env`:
-  - `GEMINI_VISION_MODEL`: the current **Flash** model on the free tier
-  - `GEMINI_EMBED_MODEL`: the current **Gemini embedding** model
+  - `GEMINI_VISION_MODEL`: the current **Flash** model on the free tier (chosen: `gemini-3.8-flash`)
+  - `GEMINI_EMBED_MODEL`: the current **Gemini embedding** model (chosen: `gemini-embedding-2`)
+  - Why these: decision #14 in [DESIGN.md](DESIGN.md#decisions-log)
 - [x] Look up the free-tier rate limits (requests per minute and per day) on the Gemini pricing / rate-limits page,
   and write them, plus the chosen model ids, into the decisions log in [DESIGN.md](DESIGN.md#decisions-log).
   This closes an open question.
@@ -53,6 +54,9 @@ The code can't do these steps for me. Work top to bottom and tick each box as it
   docker compose down                        # when finished
   ```
 - [x] Run the checks: `npm install && npm test && npm run lint && npm run typecheck`.
+- [x] Set `DEMO_API_KEY` in `.env` (any long random string), then seed the demo workspace:
+  `docker compose exec -T api node dist/db/seed.js`. Every endpoint except `/health` needs the header
+  `X-Api-Key: <DEMO_API_KEY>`.
 
 ## 5 · Image corpus (Phase 1)
 
@@ -94,8 +98,8 @@ reports any invalid entry by its position, along with the reason.
 
 ## 6 · Review the design (Phase 1 gate)
 
-- [ ] Read [DESIGN.md](DESIGN.md), [SPEC.md](SPEC.md) and [GUARD_AND_EVAL.md](GUARD_AND_EVAL.md) and change anything I disagree with.
-- [ ] Be able to explain, in my own words, why `subject_label` exists alongside `subject`, and what the
+- [x] Read [DESIGN.md](DESIGN.md), [SPEC.md](SPEC.md) and [GUARD_AND_EVAL.md](GUARD_AND_EVAL.md) and change anything I disagree with.
+- [x] Be able to explain, in my own words, why `subject_label` exists alongside `subject`, and what the
   guard does with a post about penguins.
 - [ ] Tick the Phase 1 boxes in [ROADMAP.md](ROADMAP.md).
 

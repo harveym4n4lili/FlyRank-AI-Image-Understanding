@@ -1,13 +1,16 @@
 # Manifest read by the capstone evaluator.
 name: ai-image-understanding
 run: docker compose up --build -d
-seed: echo "seed step added in Phase 2"
+seed: docker compose exec -T api node dist/db/seed.js
 test: npm test
 base_url: http://localhost:3000
+# All endpoints except /health need the header X-Api-Key: <DEMO_API_KEY from .env>
 endpoints:
   - GET /health
-  # Added as they are built (see docs/SPEC.md#api):
-  # - POST /jobs/ingest-images
-  # - GET /posts/:id/images
-  # - POST /posts/:id/images/:imageId/check
-  # - GET /costs/summary
+  - POST /jobs/ingest-images
+  - GET /jobs/:id
+  - GET /images
+  - GET /images/:id
+  - GET /costs
+  - GET /costs/summary
+  # Phase 3: GET /posts/:id/images, POST /posts/:id/images/:imageId/check

@@ -38,3 +38,30 @@ links into manifest entries, and checked each page title before adding it.
 **My corrections to the AI's suggestions / my own picks:** a "two jackals" photo got into my red-fox batch and
 the title check caught it, so I swapped it. I sent a batch of mixed fox species as "gray fox" when the plan needed
 gray *wolves*, and replaced it with real wolves.
+
+## 2026-10-09 · Phase 2: image understanding pipeline
+
+**Done:** Drizzle schema + first migration (workspaces, ingest_batches, images, image_tags, ai_calls, with indexes);
+seed script; Gemini vision provider with JSON-schema structured output; Zod validation of every response; flagging
+rule; per-call cost log + daily budget guard; pg-boss ingest job (retries with backoff, dead-letter queue, failure
+alert, idempotent re-runs); API-key auth; /jobs, /images, /costs endpoints; 47 tests.
+
+**Result:** all 50 images processed on the first run: 49 tagged, 1 flagged (dog-09, "wolfdog", confidence 0.65).
+Labels match my manifest on 49/50. Notional cost $0.036 for 50 calls, billed $0.
+
+**Where AI helped:** Claude Code wrote the pipeline, chose the models by sending each candidate a tiny test call, and
+proved retries live by running a worker against a non-existent model on a throwaway image.
+
+**Where AI was wrong or needed correcting:**
+- `gemini-2.5-flash` (the model I'd have guessed) returns 404 for new users, so it had to probe the available models
+  rather than assume.
+- The first worker log said "will retry" even on the final attempt; it was fixed to say when a job is moving to the dead-letter queue.
+- A log-tailing monitor lagged behind the real progress and made it look like the worker was stuck; querying the database directly showed it was fine.
+- Services originally imported the HTTP error class (a layering violation); this was moved to `src/lib/errors.ts`.
+
+**Surprises / honest notes:**
+- `red-fox-09` (meant to be the "distant fox in snow" hard case) was tagged with 0.95 confidence. The fox is clearly
+  visible, so it isn't really a hard case. The low-confidence requirement is still met by dog-09.
+- The model's self-reported confidence is high almost everywhere (0.90–0.99); only one image fell below 0.70. Calibration
+  is something to watch in Phase 4.
+- Prices in `src/config/pricing.ts` are notional assumptions, not verified list prices.

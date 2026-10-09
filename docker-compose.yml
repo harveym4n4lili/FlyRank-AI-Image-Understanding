@@ -1,3 +1,14 @@
+x-app: &app
+  build: .
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    DATABASE_URL: postgres://app:app@db:5432/imagematch
+    DATA_DIR: /app/data
+  volumes:
+    - ./data:/app/data:ro
+
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -15,31 +26,28 @@ services:
       timeout: 3s
       retries: 20
 
-  api:
-    build: .
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      DATABASE_URL: postgres://app:app@db:5432/imagematch
-      PORT: 3000
-    ports:
-      - "${API_PORT:-3000}:3000"
+  # One-shot: applies drizzle/ migrations, then exits. api and worker wait for it.
+  migrate:
+    <<: *app
+    command: ["node", "dist/db/migrate.js"]
     depends_on:
       db:
         condition: service_healthy
 
-  worker:
-    build: .
-    command: ["node", "dist/worker/index.js"]
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      DATABASE_URL: postgres://app:app@db:5432/imagematch
+  api:
+    <<: *app
+    ports:
+      - "${API_PORT:-3000}:3000"
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *app
+    command: ["node", "dist/worker/index.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   pgdata:

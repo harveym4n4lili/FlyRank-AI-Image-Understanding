@@ -16,13 +16,13 @@ Self-paced. Do the phases in order, and don't start the next phase until the cur
 - **GATE:** design docs committed
 
 ## Phase 2 · Image understanding pipeline (≈10–14 h)
-- [ ] Drizzle schema + first migration; seed script (workspace + API key)
-- [ ] Gemini provider: structured output + Zod `safeParse`; retry on invalid output (max 3, exponential backoff)
-- [ ] Every call writes to `ai_calls`; budget guard checked before each call
-- [ ] pg-boss `ingest-image` job, idempotent on content hash; progress via `/jobs/:id`
-- [ ] A final failure triggers an alert (error log + optional `ALERT_WEBHOOK_URL`)
-- [ ] Flagging rule (`T_CONF`, unknown label)
-- **GATE:** all 50 images are tagged or flagged, `/costs/summary` shows every call
+- [x] Drizzle schema + first migration; seed script (workspace + API key)
+- [x] Gemini provider: structured output + Zod `safeParse`; retry on invalid output (max 3, exponential backoff)
+- [x] Every call writes to `ai_calls`; budget guard checked before each call
+- [x] pg-boss `ingest-image` job, idempotent on content hash; progress via `/jobs/:id`
+- [x] A final failure triggers an alert (error log + optional `ALERT_WEBHOOK_URL`)
+- [x] Flagging rule (`T_CONF`, unknown label)
+- **GATE:** all 50 images are tagged or flagged, `/costs/summary` shows every call — ✅ passed 2026-10-09 (49 tagged, 1 flagged, 50 cost rows)
 
 ## Phase 3 · Matching engine (≈12–16 h)
 - [ ] Post creation + subject extraction + embedding jobs
