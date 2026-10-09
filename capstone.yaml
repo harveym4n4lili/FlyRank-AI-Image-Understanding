@@ -1,0 +1,13 @@
+# Manifest read by the capstone evaluator.
+name: ai-image-understanding
+run: docker compose up --build -d
+seed: echo "seed step added in Phase 2"
+test: npm test
+base_url: http://localhost:3000
+endpoints:
+  - GET /health
+  # Added as they are built (see docs/SPEC.md#api):
+  # - POST /jobs/ingest-images
+  # - GET /posts/:id/images
+  # - POST /posts/:id/images/:imageId/check
+  # - GET /costs/summary
