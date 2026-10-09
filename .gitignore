@@ -1,0 +1,21 @@
+# Dependencies & build
+node_modules/
+dist/
+coverage/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Internship brief (internal material, kept local)
+Requirements/
