@@ -82,13 +82,15 @@ export B=http://localhost:3000
 
 ## Phase 4 · Review, eval & submission
 
-*To be run once Phase 4 is built.*
-
-- [ ] `GET /review` in a browser → ✅ a table of pending suggestions with reasons.
+- [ ] Open `http://localhost:3000/review.html`, paste the API key, **Load** → ✅ a table of pending suggestions with thumbnails and reasons;
+      **Approve** on one row → ✅ the row shows `approved`.
+- [ ] `curl -H "X-Api-Key: $KEY" "$B/review?verdict=ACCEPTED"` → ✅ JSON list; `curl $B/review` (no key) → ✅ 401.
 - [ ] `POST /suggestions/<id>/approve` with header `Idempotency-Key: k1`, twice → ✅ the same response both times and only **one** review action stored.
-- [ ] The same with a different key on that already-decided suggestion → ✅ 409.
+- [ ] The same with a different key on that already-decided suggestion → ✅ 409 `ALREADY_DECIDED`; the same key for a different
+      suggestion → ✅ 422; approving a guard-`REJECTED` suggestion → ✅ 409 `GUARD_REJECTED`; no `Idempotency-Key` → ✅ 400.
 - [ ] `GET /suggestions/<id>` → ✅ shows why: reasons, thresholds used, similarity, review history.
-- [ ] **Probe 5:** `npm run eval` → ✅ prints top-1 precision; the **same number** is in the README.
+- [ ] **Probe 5:** `npm run eval` → ✅ prints `Top-1 precision: 100.0% (11/11)`, the **same number** as the README; `-- --sweep` prints the table in `docs/EVAL_RESULTS.md`.
+      (On a freshly tagged database the exact top-1 picks can differ; see EVAL_RESULTS → Reproducibility.)
 - [ ] **Probe 6:** each vision/embedding call has a row in `GET /costs`.
 - [ ] Fresh-clone test: clone into a new folder → `cp .env.example .env` (add your Gemini key) → run `run:` and `seed:`
       from `capstone.yaml` → ingest → ✅ the Phase 2 and 3 checks above pass with no manual fixes.

@@ -42,8 +42,16 @@ describe("decideFlag (low confidence is flagged, not accepted)", () => {
   it("flags low confidence", () => {
     expect(decideFlag({ ...valid, confidence: 0.42 })).toEqual({
       status: "flagged",
-      flagReason: "low_confidence (0.42 < 0.70)",
+      flagReason: "low_confidence (0.42 < 0.80)",
     });
+  });
+
+  it("flags the borderline 'wolfdog' confidence seen on a fresh re-run (0.75)", () => {
+    expect(decideFlag({ ...valid, confidence: 0.75 }).status).toBe("flagged");
+  });
+
+  it("keeps clearly identified images (every clear image scored ≥ 0.88)", () => {
+    expect(decideFlag({ ...valid, confidence: 0.88 }).status).toBe("tagged");
   });
 
   it("flags an unknown subject even when confident", () => {
@@ -52,7 +60,7 @@ describe("decideFlag (low confidence is flagged, not accepted)", () => {
 
   it("reports every reason", () => {
     const d = decideFlag({ ...valid, subject_label: "unknown", category: "other", confidence: 0.3 });
-    expect(d.flagReason).toBe("low_confidence (0.30 < 0.70), subject_unknown, category_other");
+    expect(d.flagReason).toBe("low_confidence (0.30 < 0.80), subject_unknown, category_other");
   });
 });
 

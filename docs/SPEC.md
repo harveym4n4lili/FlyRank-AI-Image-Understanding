@@ -33,8 +33,8 @@ black_bear, white_tailed_deer, red_deer, …, `unknown`). Why there are two subj
 | `image_tags` | image_id, tag (one row per attribute) | pk(image_id, tag); (tag) |
 | `image_embeddings` / `post_embeddings` | image_id / post_id (pk), model, `input_text` (exactly what was embedded), `embedding vector(768)` | HNSW `vector_cosine_ops` |
 | `posts` | workspace_id, `slug`, title, body, extracted subject/subject_label/category, status (`pending → embedded \| failed`) | unique(workspace_id, slug) — idempotent creation |
-| `suggestions` | post_id, image_id, rank, similarity, `verdict` (ACCEPTED \| REJECTED), `reasons` jsonb `[{code, message, detail}]`, `guard_version`, `review_status` (pending \| approved \| rejected) | unique(post_id, image_id); (post_id, rank); (workspace_id, review_status) |
-| `review_actions` | suggestion_id, action (approve \| reject), note, `idempotency_key` | unique(workspace_id, idempotency_key) — a retried request is recorded once |
+| `suggestions` | post_id, image_id, rank, similarity, `verdict` (ACCEPTED \| REJECTED), `reasons` jsonb `[{code, message, detail}]`, `guard_version`, `guard_config` jsonb (exact thresholds used), `review_status` (pending \| approved \| rejected) | unique(post_id, image_id); (post_id, rank); (workspace_id, review_status) |
+| `review_actions` | suggestion_id, action (approve \| reject), note, `idempotency_key`, `response` jsonb (replayed for a repeated key) | unique(workspace_id, idempotency_key) — a retried request is recorded once; (suggestion_id) |
 | `ai_calls` | kind (vision \| embed \| post_extract), model, subject_type + subject_id (**cost attribution**), job_id, attempt, input/output tokens, `cost_usd` (notional, from `src/config/pricing.ts`), `billed_usd` (0 on the free tier), latency_ms, outcome (ok \| invalid_output \| error \| budget_blocked) | (workspace_id, created_at); (subject_type, subject_id); (job_id) |
 
 Notes:
@@ -63,9 +63,11 @@ A 500 only happens for genuine bugs, and the error is logged without secrets.
 | GET | `/posts/:id` | includes the extracted subject, label and category |
 | GET | `/posts/:id/images?limit=5` | the top `limit` (1–20) candidates by similarity, each run through the guard; every decision is stored in `suggestions` (shape below). **409** `POST_NOT_READY` if the post is not embedded yet |
 | POST | `/posts/:id/images/:imageId/check` | runs the guard on one forced image (Probe 3). Creates no suggestion |
-| GET | `/review?status=pending` | server-rendered HTML table; JSON with `Accept: application/json` |
+| GET | `/review?status=pending&verdict=&limit=` | suggestions to review (JSON), with post, image and reasons |
+| GET | `/review.html` | minimal review page (no auth on the page itself; it asks for the API key and calls the JSON endpoints) |
+| GET | `/images/:id/file` | the image bytes (for the review page thumbnails); path is confined to `DATA_DIR` |
 | GET | `/suggestions/:id` | the full "why": reasons, thresholds (`guard_version`), image tags, similarity, review history |
-| POST | `/suggestions/:id/approve` · `/reject` | `Idempotency-Key` header required, body `{ note? }`. Same key → original response; a different key on an already-decided suggestion → **409** |
+| POST | `/suggestions/:id/approve` · `/reject` | `Idempotency-Key` header required (8–200 chars), body `{ note? }`. Same key → the original response with `"replayed": true`; same key for a different suggestion/action → **422**; a new key on an already-decided suggestion → **409** `ALREADY_DECIDED`; approving a guard-rejected pairing → **409** `GUARD_REJECTED` |
 | GET | `/costs?kind=&limit=` | raw `ai_calls` rows |
 | GET | `/costs/summary` | totals by kind/model, notional vs billed, budget used / remaining |
 | GET | `/health` | DB reachability (200 / 503) |

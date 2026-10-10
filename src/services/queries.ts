@@ -1,10 +1,12 @@
+import { resolve } from "node:path";
 import type { BudgetLimits } from "../domain/budget.js";
 import { AppError } from "../lib/errors.js";
 import type { AiCallKind, AiCallsRepo } from "../repositories/aiCalls.js";
 import type { ImageStatus, ImagesRepo } from "../repositories/images.js";
+import { resolveInside } from "./ingestion.js";
 
 // Read-side operations behind GET /images and GET /costs.
-export function queryService(deps: { images: ImagesRepo; aiCalls: AiCallsRepo; limits: BudgetLimits }) {
+export function queryService(deps: { images: ImagesRepo; aiCalls: AiCallsRepo; limits: BudgetLimits; dataDir: string }) {
   return {
     listImages: (workspaceId: string, filters: { status?: ImageStatus; label?: string; limit: number; offset: number }) =>
       deps.images.list(workspaceId, filters),
@@ -14,6 +16,13 @@ export function queryService(deps: { images: ImagesRepo; aiCalls: AiCallsRepo; l
       if (!image) throw new AppError(404, "NOT_FOUND", "No such image");
       const { rawResponse: _raw, contentHash: _hash, ...rest } = image;
       return rest;
+    },
+
+    // Absolute path of an image file, guaranteed to be inside DATA_DIR.
+    async imageFilePath(workspaceId: string, imageId: string) {
+      const image = await deps.images.findById(imageId, workspaceId);
+      if (!image) throw new AppError(404, "NOT_FOUND", "No such image");
+      return resolve(resolveInside(deps.dataDir, image.filePath));
     },
 
     listCosts: (workspaceId: string, filters: { kind?: AiCallKind; limit: number }) =>

@@ -30,6 +30,7 @@ export const aiCallOutcome = pgEnum("ai_call_outcome", ["ok", "invalid_output", 
 export const postStatus = pgEnum("post_status", ["pending", "embedded", "failed"]);
 export const verdict = pgEnum("verdict", ["ACCEPTED", "REJECTED"]);
 export const reviewStatus = pgEnum("review_status", ["pending", "approved", "rejected"]);
+export const reviewAction = pgEnum("review_action", ["approve", "reject"]);
 
 export const EMBEDDING_DIMENSIONS = 768;
 
@@ -203,6 +204,8 @@ export const suggestions = pgTable(
     verdict: verdict("verdict").notNull(),
     reasons: jsonb("reasons").notNull(),
     guardVersion: text("guard_version").notNull(),
+    // The exact thresholds behind this verdict, so it stays explainable after re-tuning.
+    guardConfig: jsonb("guard_config").notNull(),
     reviewStatus: reviewStatus("review_status").notNull().default("pending"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -211,5 +214,29 @@ export const suggestions = pgTable(
     uniqueIndex("suggestions_post_image_uq").on(t.postId, t.imageId),
     index("suggestions_post_rank_idx").on(t.postId, t.rank),
     index("suggestions_workspace_review_idx").on(t.workspaceId, t.reviewStatus),
+  ],
+);
+
+// Human decisions on suggestions. The idempotency key makes a retried approve/reject happen once:
+// the stored response is replayed instead of recording a second action.
+export const reviewActions = pgTable(
+  "review_actions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id),
+    suggestionId: uuid("suggestion_id")
+      .notNull()
+      .references(() => suggestions.id, { onDelete: "cascade" }),
+    action: reviewAction("action").notNull(),
+    note: text("note"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    response: jsonb("response").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("review_actions_workspace_key_uq").on(t.workspaceId, t.idempotencyKey),
+    index("review_actions_suggestion_idx").on(t.suggestionId),
   ],
 );

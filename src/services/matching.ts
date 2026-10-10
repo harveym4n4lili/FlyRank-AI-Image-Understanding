@@ -8,7 +8,8 @@ import type { SuggestionsRepo } from "../repositories/suggestions.js";
 
 type Post = NonNullable<Awaited<ReturnType<PostsRepo["findById"]>>>;
 
-function factsOf(post: Post): PostFacts {
+// The post's facts as the guard sees them (unknown when extraction produced no valid label).
+export function factsOf(post: Pick<Post, "subject" | "subjectLabel" | "category" | "title">): PostFacts {
   const label = (SUBJECT_LABELS as readonly string[]).includes(post.subjectLabel ?? "")
     ? (post.subjectLabel as SubjectLabel)
     : "unknown";
@@ -61,6 +62,7 @@ export function matchingService(deps: { posts: PostsRepo; embeddings: Embeddings
           verdict: c.verdict,
           reasons: c.reasons,
           guardVersion: version,
+          guardConfig: GUARD,
         })),
       );
       const byImage = new Map(stored.map((s) => [s.imageId, s]));

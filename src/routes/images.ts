@@ -25,6 +25,11 @@ export function imagesRouter(queries: QueryService) {
     res.json({ count: items.length, items });
   });
 
+  router.get("/images/:id/file", async (req, res) => {
+    const { id } = ImageParams.parse(req.params);
+    res.sendFile(await queries.imageFilePath(workspaceOf(res), id), { headers: { "Cache-Control": "private, max-age=3600" } });
+  });
+
   router.get("/images/:id", async (req, res) => {
     const { id } = ImageParams.parse(req.params);
     res.json(await queries.getImage(workspaceOf(res), id));

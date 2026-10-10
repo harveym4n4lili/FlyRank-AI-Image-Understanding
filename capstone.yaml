@@ -20,3 +20,10 @@ endpoints:
   - GET /posts/:id
   - GET /posts/:id/images
   - POST /posts/:id/images/:imageId/check
+  - GET /review
+  - GET /review.html
+  - GET /suggestions/:id
+  - POST /suggestions/:id/approve   # header Idempotency-Key
+  - POST /suggestions/:id/reject    # header Idempotency-Key
+  - GET /images/:id/file
+# Eval (host, stack running, corpus tagged): npm run eval   → top-1 precision, same number as the README

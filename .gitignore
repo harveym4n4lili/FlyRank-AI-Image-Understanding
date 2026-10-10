@@ -19,3 +19,7 @@ Thumbs.db
 
 # Internship brief (internal material, kept local)
 Requirements/
+
+# Eval runs: keep only the latest result in git
+eval/results/*
+!eval/results/latest.json

@@ -33,11 +33,11 @@ Self-paced. Do the phases in order, and don't start the next phase until the cur
 - **GATE:** fox post ranks the fox first; the guard refuses the wolf — ✅ passed 2026-10-09 (fox #1 at 0.665; best wolf #13, best dog #15; forced wolf → SUBJECT_MISMATCH)
 
 ## Phase 4 · Production layer (≈8–12 h)
-- [ ] Review endpoints + HTML table + idempotency keys
-- [ ] Eval set written, eval script + threshold sweep, results committed
-- [ ] README: overview, diagram, run + seed steps, precision number, limitations
-- [ ] `capstone.yaml` complete; fresh-clone test with `docker compose up` on a clean machine
-- **GATE:** eval precision measured and quoted in the README
+- [x] Review endpoints + HTML table + idempotency keys
+- [x] Eval set written, eval script + threshold sweep, results committed
+- [x] README: overview, diagram, run + seed steps, precision number, limitations
+- [x] `capstone.yaml` complete; fresh-clone test with `docker compose up` on a clean machine (clean copy + empty database; all probes pass)
+- **GATE:** eval precision measured and quoted in the README — ✅ passed 2026-10-09 (top-1 precision 100%, 11/11; 5/5 negatives refused)
 
 ## Section 6 checklist → where it gets proven
 

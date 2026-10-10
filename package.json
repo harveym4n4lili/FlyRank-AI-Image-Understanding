@@ -20,7 +20,8 @@
     "db:generate": "drizzle-kit generate",
     "corpus:download": "tsx scripts/download-corpus.ts",
     "migrate": "tsx src/db/migrate.ts",
-    "seed": "tsx src/db/seed.ts"
+    "seed": "tsx src/db/seed.ts",
+    "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

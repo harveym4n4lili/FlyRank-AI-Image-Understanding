@@ -6,6 +6,7 @@ import type { IngestionService } from "../src/services/ingestion.js";
 import type { MatchingService } from "../src/services/matching.js";
 import type { PostsService } from "../src/services/posts.js";
 import type { QueryService } from "../src/services/queries.js";
+import type { ReviewService } from "../src/services/review.js";
 
 const KEY = "test-key";
 const WORKSPACE = "11111111-1111-4111-8111-111111111111";
@@ -32,6 +33,11 @@ function makeApp(overrides: Partial<AppDeps> = {}) {
     matchForPost: vi.fn(async () => ({ result: "MATCH" })),
     checkCandidate: vi.fn(async () => ({ verdict: "REJECTED" })),
   } as unknown as MatchingService;
+  const review = {
+    list: vi.fn(async () => []),
+    explain: vi.fn(async () => ({ id: "s1" })),
+    decide: vi.fn(async (input: { action: string }) => ({ id: "s1", reviewStatus: input.action === "approve" ? "approved" : "rejected", replayed: false })),
+  } as unknown as ReviewService;
   const deps: AppDeps = {
     checkDb: async () => true,
     resolveWorkspace: async (hash) => (hash === hashApiKey(KEY) ? WORKSPACE : null),
@@ -39,9 +45,10 @@ function makeApp(overrides: Partial<AppDeps> = {}) {
     queries,
     posts,
     matching,
+    review,
     ...overrides,
   };
-  return { app: createApp(deps), deps, ingestion, queries, posts, matching };
+  return { app: createApp(deps), deps, ingestion, queries, posts, matching, review };
 }
 
 describe("health", () => {
@@ -145,5 +152,55 @@ describe("posts & matching routes", () => {
     const res = await request(makeApp().app).post("/jobs/embed-images").set("X-Api-Key", KEY).send({});
     expect(res.status).toBe(202);
     expect(res.body).toEqual({ enqueued: 50 });
+  });
+});
+
+describe("review routes", () => {
+  const SUGGESTION = "22222222-2222-4222-8222-222222222222";
+
+  it("serves the review page without an API key (it is only a shell)", async () => {
+    const res = await request(makeApp().app).get("/review.html");
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Suggestion review");
+  });
+
+  it("still protects the review data with the API key", async () => {
+    await request(makeApp().app).get("/review").expect(401);
+  });
+
+  it("requires an Idempotency-Key to approve", async () => {
+    const res = await request(makeApp().app).post(`/suggestions/${SUGGESTION}/approve`).set("X-Api-Key", KEY).send({});
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).toContain("Idempotency-Key");
+  });
+
+  it("rejects a malformed Idempotency-Key", async () => {
+    await request(makeApp().app)
+      .post(`/suggestions/${SUGGESTION}/approve`)
+      .set("X-Api-Key", KEY)
+      .set("Idempotency-Key", "x")
+      .send({})
+      .expect(400);
+  });
+
+  it("passes the decision through with the key and note", async () => {
+    const { app, review } = makeApp();
+    const res = await request(app)
+      .post(`/suggestions/${SUGGESTION}/reject`)
+      .set("X-Api-Key", KEY)
+      .set("Idempotency-Key", "review-key-123")
+      .send({ note: "wrong season" });
+    expect(res.status).toBe(200);
+    expect(review.decide).toHaveBeenCalledWith({
+      workspaceId: WORKSPACE,
+      suggestionId: SUGGESTION,
+      action: "reject",
+      note: "wrong season",
+      idempotencyKey: "review-key-123",
+    });
+  });
+
+  it("validates review filters", async () => {
+    await request(makeApp().app).get("/review?status=maybe").set("X-Api-Key", KEY).expect(400);
   });
 });

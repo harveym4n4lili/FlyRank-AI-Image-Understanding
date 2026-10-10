@@ -45,19 +45,24 @@ compares labels. The taxonomy also defines compatibility: a generic `fox` post a
 
 ### Thresholds
 
-| Name | Start | Meaning |
+| Name | Value | Meaning |
 |---|---|---|
-| `T_CONF` | 0.70 | below this, an image is flagged at ingestion and fails R5 |
-| `T_SIM` | 0.55 | similarity floor |
+| `T_CONF` | **0.80** | below this, an image is flagged at ingestion and fails R5 (calibrated, decision #25) |
+| `T_SIM` | **0.46** | similarity floor (chosen by the eval sweep over two runs) |
 | `T_SIM_STRICT` | 0.65 | floor when the post subject is unknown |
 | `TOP_K` | 3 | max accepted suggestions per post |
 
-The first guesses (0.70 / 0.80) rejected *every* match: with `gemini-embedding-2`, a long post vs a one-sentence
-caption scores 0.54–0.69 even for the right animal. The values above were set from the Phase 3 demo-post run
-(decision #18) and are still provisional. The Phase 4 sweep finalises them (`npm run eval -- --sweep`):
-1. Sweep `T_SIM` from 0.50 to 0.90 in steps of 0.02 over the eval set.
+History: the first guesses (0.70 / 0.80) rejected *every* match. With `gemini-embedding-2`, a long post vs a
+one-sentence caption scores 0.49–0.69 even for the right animal. Phase 3 set 0.55 / 0.65 from 7 demo posts
+(decision #18); the Phase 4 sweep chose `T_SIM` = 0.48 on the reference run (decision #21) and 0.46 once a fresh-clone
+run was added (decision #26). Full tables in [EVAL_RESULTS.md](EVAL_RESULTS.md).
+
+Tuning procedure (`npm run eval -- --sweep`):
+1. Sweep `T_SIM` from 0.40 to 0.80 in steps of 0.02 over the eval set (range moved down from the planned
+   0.50–0.90 once the real similarity values were known).
 2. For each value, record top-1 precision, abstention accuracy and coverage.
-3. Pick the value with the highest precision that still answers at least 90% of positive posts. Prefer refusing over being wrong.
+3. Pick the value with the highest top-1 precision and zero wrong accepts; among ties, prefer the higher threshold
+   (refusing beats being wrong).
 4. Commit the sweep table to `docs/EVAL_RESULTS.md` and the chosen values to config. The README cites the result.
 
 The fox/wolf boundary is defended with numbers: the sweep table shows how similar the fox post is to the best
@@ -92,23 +97,26 @@ never sent to the model or the guard.
 
 ## Eval set
 
-`eval/posts.json`: at least 15 labeled posts of about 80–150 words each.
+`eval/posts.json`: 16 labeled posts of about 60–100 words each (the 7 demo posts are part of it).
 
 | Type | Count | Label | Purpose |
 |---|---|---|---|
-| Positive, plain wording | 5 (one per category) | `expected_image_ids` | basic retrieval |
-| Positive, synonym wording | 5 | e.g. "Vulpes vulpes", "Canis lupus", "cervids" | concept matching, not keyword matching |
-| Negative | 3 | `expected: "NO_CONFIDENT_MATCH"` | penguins, sourdough, skylines (Probe 4) |
-| Near-miss | 2 | e.g. arctic fox post (only red foxes exist), sled dogs vs wolves | stresses R3 |
+| Positive, plain wording | 6 (fox, wolf, dog, bears, white-tailed deer, red deer) | `expected_labels` | basic retrieval |
+| Positive, synonym wording | 5 (Vulpes vulpes, Canis lupus, Ursus arctos horribilis, Cervus elaphus, Canis familiaris) | `expected_labels` | concept matching, not keyword matching; none uses the common name |
+| Negative | 3 (penguins, sourdough, city skyline) | `expected: "NO_CONFIDENT_MATCH"` | Probe 4 |
+| Near-miss | 2 (arctic fox with only red foxes in the library; coyotes, not in the taxonomy) | `expected: "NO_CONFIDENT_MATCH"` | stresses R3 |
 
-Positive posts list **all** acceptable images, because several fox photos are correct for a fox post. This is a
-stricter and more honest version of the brief's "mark the one correct image".
+Positive posts list the acceptable **labels**; an image is correct when its hand-labeled `expected_label` in
+`data/manifest.json` is one of them. Several fox photos are correct for a fox post, so this is a stricter and more
+honest version of the brief's "mark the one correct image". The model's own labels are never used for scoring.
 
 ### Metrics (`npm run eval`)
 
-- **Top-1 precision** (headline): the share of positive posts whose top `ACCEPTED` suggestion is in `expected_image_ids`. An abstention counts as not correct.
+- **Top-1 precision** (headline): the share of positive posts whose top `ACCEPTED` suggestion has an expected label. An abstention counts as not correct.
 - **Abstention accuracy:** the share of negative posts that get `NO_CONFIDENT_MATCH`.
 - **Wrong-accept count:** the number of incorrect images ACCEPTED. The target is 0.
 - **Coverage:** the share of positive posts that get any accepted suggestion.
+- **Baseline, ranking only:** top-1 precision if the single most similar image were used with no guard.
 
-The script prints a per-post table and the summary, and writes `eval/results/<timestamp>.json`. The README quotes the committed run (Probe 5).
+The script prints a per-post table and the summary, and writes `eval/results/<timestamp>.json` plus `latest.json`
+(committed). The README quotes that run (Probe 5): **100% top-1 precision (11/11)**, see [EVAL_RESULTS.md](EVAL_RESULTS.md).

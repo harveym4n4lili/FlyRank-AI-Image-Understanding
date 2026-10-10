@@ -9,6 +9,11 @@ export function workspacesRepo(db: Db) {
       return row ?? null;
     },
 
+    async findByName(name: string) {
+      const [row] = await db.select().from(workspaces).where(eq(workspaces.name, name)).limit(1);
+      return row ?? null;
+    },
+
     // Seed helper: creates the workspace, or rotates its key if it already exists.
     async upsert(name: string, apiKeyHash: string) {
       const [row] = await db

@@ -13,6 +13,7 @@ import { ingestionService } from "./services/ingestion.js";
 import { matchingService } from "./services/matching.js";
 import { postsService } from "./services/posts.js";
 import { queryService } from "./services/queries.js";
+import { reviewService } from "./services/review.js";
 
 const env = loadEnv();
 const database = createDb(env.DATABASE_URL);
@@ -23,6 +24,7 @@ const images = imagesRepo(database.db);
 const workspaces = workspacesRepo(database.db);
 const posts = postsRepo(database.db);
 const embeddings = embeddingsRepo(database.db);
+const suggestions = suggestionsRepo(database.db);
 
 const app = createApp({
   checkDb: database.ping,
@@ -32,9 +34,11 @@ const app = createApp({
     images,
     aiCalls: aiCallsRepo(database.db),
     limits: { maxUsdPerDay: env.AI_BUDGET_USD, maxCallsPerDay: env.AI_MAX_CALLS_PER_DAY },
+    dataDir: env.DATA_DIR,
   }),
   posts: postsService({ posts, embeddings, queue: matchingQueue(boss) }),
-  matching: matchingService({ posts, embeddings, suggestions: suggestionsRepo(database.db) }),
+  matching: matchingService({ posts, embeddings, suggestions }),
+  review: reviewService({ suggestions }),
 });
 
 const server = app.listen(env.PORT, () => {

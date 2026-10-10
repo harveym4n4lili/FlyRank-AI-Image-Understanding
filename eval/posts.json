@@ -1,0 +1,114 @@
+[
+  {
+    "slug": "red-fox-behaviour",
+    "type": "positive",
+    "expected_labels": ["red_fox"],
+    "title": "The behaviour of red foxes",
+    "body": "Red foxes are among the most adaptable predators in the northern hemisphere. They hunt alone at dawn and dusk, listening for voles under grass or snow before leaping high and pouncing nose-first. Their orange-red coat, black legs and white-tipped tail make them easy to recognise at the edge of a field or forest. Outside the breeding season they live solitary lives, but in spring a pair raises its kits together in an underground den, and the young foxes begin exploring outside the den after a few weeks."
+  },
+  {
+    "slug": "how-wolf-packs-hunt",
+    "type": "positive",
+    "expected_labels": ["gray_wolf"],
+    "title": "How gray wolf packs hunt",
+    "body": "Gray wolves live and hunt in family packs led by a breeding pair. A pack can follow elk or deer for kilometres, testing the herd until one animal falls behind. Wolves are much larger than foxes or most dogs, with long legs, a thick grizzled coat in shades of grey and tan, and a broad head. Their howls keep the pack together across large territories, and pups born in spring travel with the adults by autumn."
+  },
+  {
+    "slug": "choosing-a-family-dog",
+    "type": "positive",
+    "expected_labels": ["dog"],
+    "title": "Choosing a family dog",
+    "body": "Picking the right dog for a family means thinking about energy, size and temperament. Labradors and golden retrievers are patient and playful, terriers are lively and curious, and many mixed-breed rescue dogs make loyal companions. Whatever the breed, a dog needs daily walks, consistent training with treats and praise, and plenty of time outdoors with the people it lives with."
+  },
+  {
+    "slug": "bears-of-north-america",
+    "type": "positive",
+    "expected_labels": ["brown_bear", "black_bear"],
+    "title": "Bears of North America",
+    "body": "Two bear species roam most of North America's forests and mountains. Brown bears, including the grizzly, are large and heavy with a shoulder hump and long claws for digging. Black bears are smaller, excellent tree climbers, and despite the name their coats range from black to cinnamon. Both spend the summer and autumn eating berries, roots, fish and insects to build fat reserves before denning for the winter."
+  },
+  {
+    "slug": "white-tailed-deer-backyard",
+    "type": "positive",
+    "expected_labels": ["white_tailed_deer"],
+    "title": "White-tailed deer in the backyard",
+    "body": "White-tailed deer are the most familiar deer in North America, often seen at the edge of woods and even in suburban gardens at dawn. When alarmed they raise their tail to flash its bright white underside as a warning to others. Bucks grow forward-curving antlers each summer, and does give birth to spotted fawns in late spring, hiding them in tall grass while they feed nearby."
+  },
+  {
+    "slug": "red-deer-rut",
+    "type": "positive",
+    "expected_labels": ["red_deer"],
+    "title": "The red deer rut in autumn",
+    "body": "Every October the red deer rut fills the glens with the roaring of stags. Mature stags with tall, many-pointed antlers gather groups of hinds and defend them from rivals, roaring, parallel-walking and occasionally clashing antlers. The red deer is one of the largest deer species in Europe, with a reddish-brown summer coat that turns greyer in winter and a pale patch on the rump."
+  },
+  {
+    "slug": "vulpes-vulpes-field-guide",
+    "type": "synonym",
+    "expected_labels": ["red_fox"],
+    "title": "Vulpes vulpes: a field guide",
+    "body": "Vulpes vulpes is the most widespread wild canid on Earth, found from Arctic tundra to city parks. Look for a slender russet animal about the size of a small dog, with a long bushy tail ending in a white tip and dark 'stockings' on its legs. It is famous for the mousing pounce: standing still, ears forward, then springing into the air to land on prey hidden under snow. Tracks run in an almost straight line, and its sharp, barking call carries far on winter nights."
+  },
+  {
+    "slug": "canis-lupus-return",
+    "type": "synonym",
+    "expected_labels": ["gray_wolf"],
+    "title": "Canis lupus: the return of an apex predator",
+    "body": "After decades of absence, Canis lupus is recolonising forests across Europe and the northern Rockies. These grey, long-legged hunters travel in close-knit family groups, covering dozens of kilometres a night in search of elk, moose and wild boar. Their return reshapes whole ecosystems: grazing animals move more, riverbanks recover, and scavengers feast on what the pack leaves behind."
+  },
+  {
+    "slug": "ursus-arctos-horribilis",
+    "type": "synonym",
+    "expected_labels": ["brown_bear"],
+    "title": "Ursus arctos horribilis at the salmon run",
+    "body": "Each summer Ursus arctos horribilis gathers at Alaskan waterfalls to catch salmon leaping upstream. These massive omnivores, recognisable by the muscular hump over their shoulders and their dished faces, can weigh over 300 kilograms. Dominant males claim the best fishing spots while younger animals wait their turn downstream, packing on fat for the long winter sleep."
+  },
+  {
+    "slug": "cervus-elaphus-highlands",
+    "type": "synonym",
+    "expected_labels": ["red_deer"],
+    "title": "Cervus elaphus in the Scottish Highlands",
+    "body": "Cervus elaphus is the largest land mammal in Britain. In the Highlands, herds of hinds and their calves graze the open hillsides, while stags carry wide, branching antlers that can have a dozen or more points. Their coat is a warm russet-brown in summer, and in autumn the hills echo with deep bellowing as males compete for mates."
+  },
+  {
+    "slug": "canis-familiaris-companion",
+    "type": "synonym",
+    "expected_labels": ["dog"],
+    "title": "Canis familiaris: our oldest companion",
+    "body": "Canis familiaris was the first animal humans domesticated, thousands of years before farming began. Today these loyal pets come in hundreds of breeds, from tiny terriers to giant mastiffs, and they still love a game of fetch, a long walk and a scratch behind the ears. A well-socialised puppy grows into a companion that reads human gestures better than almost any other animal."
+  },
+  {
+    "slug": "emperor-penguin-winter",
+    "type": "negative",
+    "expected": "NO_CONFIDENT_MATCH",
+    "title": "How emperor penguins survive the Antarctic winter",
+    "body": "Emperor penguins breed during the harshest Antarctic winter. Males balance a single egg on their feet for about two months, huddling in tightly packed groups that slowly rotate so every bird takes a turn in the warm centre. They fast the entire time while the females feed at sea. When the chick hatches, the returning female takes over, and the chick grows its first downy grey feathers on the ice."
+  },
+  {
+    "slug": "sourdough-starter-basics",
+    "type": "negative",
+    "expected": "NO_CONFIDENT_MATCH",
+    "title": "Sourdough starter basics",
+    "body": "A sourdough starter is just flour and water colonised by wild yeast and lactic acid bacteria. Feed it equal weights of flour and water once or twice a day, keep it somewhere warm, and within a week it should double in size a few hours after each feeding. A healthy starter smells pleasantly sour, is full of bubbles, and will leaven a loaf with an open crumb and a crisp, deeply browned crust."
+  },
+  {
+    "slug": "city-skyline-at-night",
+    "type": "negative",
+    "expected": "NO_CONFIDENT_MATCH",
+    "title": "Photographing a city skyline at night",
+    "body": "The best skyline photos are taken during blue hour, just after sunset, when the sky still has colour but the office towers are lit. Use a tripod, a low ISO and an exposure of several seconds so traffic turns into streaks of light. Shoot from a rooftop or across a river to include reflections, and bracket your exposures to keep detail in both the bright windows and the dark streets."
+  },
+  {
+    "slug": "arctic-fox-camouflage",
+    "type": "near_miss",
+    "expected": "NO_CONFIDENT_MATCH",
+    "title": "Arctic fox camouflage",
+    "body": "The arctic fox turns pure white in winter and brown in summer to blend in with the tundra."
+  },
+  {
+    "slug": "coyotes-in-the-suburbs",
+    "type": "near_miss",
+    "expected": "NO_CONFIDENT_MATCH",
+    "title": "Coyotes in the suburbs",
+    "body": "Coyotes have spread into cities across North America, trotting through parks and golf courses at dusk. Smaller and leaner than a wolf, with a narrow muzzle, large pointed ears and a bushy tail held low, they eat rodents, fruit and the occasional unguarded pet food. Their yipping chorus at night is often the only sign they live alongside us."
+  }
+]
