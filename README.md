@@ -49,52 +49,165 @@ Layers: `routes/` (HTTP + Zod validation) → `services/` (logic; the guard is a
 [SPEC.md](docs/SPEC.md) · [GUARD_AND_EVAL.md](docs/GUARD_AND_EVAL.md). Setup checklist: [SETUP.md](docs/SETUP.md).
 Per-phase checks: [TESTING.md](docs/TESTING.md).
 
-## Run it
+## Demo walkthrough
 
-Requirements: **Docker**, and a free **Gemini API key** from https://aistudio.google.com (no credit card).
-Node 24 is only needed for the tests and the eval script.
+The steps below run in order, from an empty database to reviewed matches. Each step says what to run and
+what to point out. Allow about 15 minutes, 7 of which are the one-off image tagging in step 2.
+
+Requirements: **Docker**, a free **Gemini API key** from https://aistudio.google.com (no credit card), and
+**Node 24** (for pretty-printed output, the tests and the eval). The commands are bash; on Windows use Git Bash.
+
+### Step 0: Start the stack
 
 ```bash
 cp .env.example .env                 # set GEMINI_API_KEY and DEMO_API_KEY (any long random string)
 docker compose up --build -d         # db → migrations → api (http://localhost:3000) + worker
 docker compose exec -T api node dist/db/seed.js   # demo workspace + 7 demo posts
+```
 
+Then, in the shell you will demo from, load the key and four small helpers. Every endpoint except
+`/health` and `/review.html` needs the `X-Api-Key` header, and ids are UUIDs. The helpers add the header and
+look ids up by name, so you never paste a UUID by hand:
+
+```bash
 export DEMO_API_KEY=$(grep ^DEMO_API_KEY= .env | cut -d= -f2-)
 export B=http://localhost:3000
-curl $B/health
+
+# raw: authenticated curl. api: the same, pretty-printed.
+raw() { curl -s -H "X-Api-Key: $DEMO_API_KEY" -H "Content-Type: application/json" "$@"; }
+api() { raw "$@" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.stringify(JSON.parse(s),null,2))}catch{console.log(s)}})"; }
+# post_id <slug> and image_id <file name without .jpg> print the UUID.
+post_id()  { raw "$B/posts?limit=200"  | grep -o "\"id\":\"[^\"]*\",\"slug\":\"$1\"" | cut -d'"' -f4; }
+image_id() { raw "$B/images?limit=200" | grep -o "\"id\":\"[^\"]*\",\"filePath\":\"images/$1\.jpg\"" | cut -d'"' -f4; }
+
+api $B/health                        # {"status": "ok", "db": true}
 ```
 
-Tag the 50-image corpus (committed in `data/images/`; about 7 minutes on the free tier). Tagged images are embedded
-automatically:
+### Step 1: The starting point
 
 ```bash
-curl -X POST -H "X-Api-Key: $DEMO_API_KEY" -H "Content-Type: application/json" -d '{}' $B/jobs/ingest-images
-curl -H "X-Api-Key: $DEMO_API_KEY" $B/jobs/<jobId>                    # progress → "state":"completed"
-curl -H "X-Api-Key: $DEMO_API_KEY" "$B/images?status=flagged"          # low-confidence images
-curl -H "X-Api-Key: $DEMO_API_KEY" $B/costs/summary                   # every AI call, costed
+api $B/posts                         # 7 demo posts, all "status": "embedded"
 ```
 
-Match images to posts:
+> **Point out:** when a post is created, a background job asks Gemini for its subject and maps it to a fixed
+> label. "Vulpes vulpes: a field guide" never says "red fox", yet its `subjectLabel` is `red_fox`. Subjects
+> outside the taxonomy get `other_animal` or `unknown` (emperor penguin, sourdough).
+
+### Step 2: Tag the image library
+
+The 50 images are committed in `data/images/`. One call queues them all for the worker:
 
 ```bash
-curl -H "X-Api-Key: $DEMO_API_KEY" $B/posts                                       # post ids
-curl -H "X-Api-Key: $DEMO_API_KEY" "$B/posts/<postId>/images?limit=5"            # ranked + guarded
-curl -X POST -H "X-Api-Key: $DEMO_API_KEY" $B/posts/<postId>/images/<imageId>/check   # force one candidate
+JOB=$(raw -X POST -d '{}' $B/jobs/ingest-images | grep -o '"jobId":"[^"]*"' | cut -d'"' -f4); echo $JOB
+api $B/jobs/$JOB                     # re-run until "state": "completed" (about 7 minutes on the free tier)
 ```
 
-Review: open **http://localhost:3000/review.html**, paste the API key, then approve or reject. Or use the API:
+> **Point out while it runs:** each image goes to Gemini Flash, which must reply in a fixed JSON shape. Zod
+> validates every response, and an invalid one is retried, never stored. Failed jobs back off and retry, then
+> go to a dead-letter queue. Tagged images are embedded automatically.
+>
+> **Idempotent:** start the ingest again and it returns `"enqueued": 0, "skipped": 50`. Files are recognised
+> by content hash and are never tagged twice.
+
+### Step 3: What the AI saw
 
 ```bash
-curl -H "X-Api-Key: $DEMO_API_KEY" "$B/review?verdict=ACCEPTED"
-curl -X POST -H "X-Api-Key: $DEMO_API_KEY" -H "Idempotency-Key: my-key-0001" $B/suggestions/<id>/approve
-curl -H "X-Api-Key: $DEMO_API_KEY" $B/suggestions/<id>                # why it was suggested or refused
+api "$B/images?label=red_fox&limit=3"   # subject, label, category, caption, confidence per image
+api "$B/images?status=flagged"          # dog-09, a "wolfdog" at confidence 0.65
 ```
 
-Evaluate (on the host, with the stack running and the corpus tagged):
+> **Point out:** the one ambiguous image is flagged instead of trusted. A flagged image is never suggested
+> automatically.
+
+### Step 4: A correct match
+
+```bash
+FOX=$(post_id red-fox-behaviour)
+api "$B/posts/$FOX/images?limit=5"
+```
+
+> **Point out:** `"result": "MATCH"` with the top 3 red-fox photos. Each suggestion lists the five guard rules
+> it passed (usable image, category, subject label, similarity ≥ 0.46, confidence ≥ 0.80). Every decision is
+> stored with the thresholds in force at the time.
+
+The synonym post finds the same photos without ever using the common name:
+
+```bash
+api "$B/posts/$(post_id vulpes-vulpes-field-guide)/images?limit=3"
+```
+
+### Step 5: The guard refuses a wrong match
+
+Force the gray wolf onto the red-fox post:
+
+```bash
+api -X POST $B/posts/$FOX/images/$(image_id gray-wolf-01)/check
+```
+
+> **Point out:** `"verdict": "REJECTED"`, *"Subject mismatch: expected red fox, detected gray wolf"*. Nothing is
+> stored; this endpoint only tests one pairing.
+
+### Step 6: No confident match
+
+Create a post live. There are no arctic foxes in the library:
+
+```bash
+api -X POST $B/posts -d '{"slug":"arctic-fox-in-winter","title":"The arctic fox in winter","body":"Vulpes lagopus turns pure white in winter and survives the tundra by hunting lemmings under the snow."}'
+ARCTIC=$(post_id arctic-fox-in-winter)
+api $B/posts/$ARCTIC                 # "status": "pending" → "embedded" within a few seconds
+api "$B/posts/$ARCTIC/images?limit=3"
+```
+
+> **Point out:** `"result": "NO_CONFIDENT_MATCH"`. The red foxes are the closest images (similarity about
+> 0.6, well above the threshold), but the subject rule refuses them, and `reasons` says why for each one.
+> Ranking by similarity alone would have suggested a red fox here.
+
+A post outside the library entirely is refused on category, with the stricter 0.65 floor that applies when the
+subject is unknown:
+
+```bash
+api "$B/posts/$(post_id sourdough-starter-basics)/images?limit=3"   # "Category mismatch: expected food, detected animal"
+```
+
+### Step 7: Human review
+
+Open **http://localhost:3000/review.html**, paste the API key, and approve or reject the pending suggestions
+with the photos in view. The same works through the API:
+
+```bash
+SID=$(raw "$B/review?verdict=ACCEPTED&limit=1" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+api $B/suggestions/$SID                                                # the "why": rules, similarity, thresholds
+api -X POST -H "Idempotency-Key: demo-approve-0001" $B/suggestions/$SID/approve   # "replayed": false
+api -X POST -H "Idempotency-Key: demo-approve-0001" $B/suggestions/$SID/approve   # same key → "replayed": true
+api -X POST -H "Idempotency-Key: demo-approve-0002" $B/suggestions/$SID/approve   # new key → 409 ALREADY_DECIDED
+```
+
+A pairing the guard rejected cannot be approved:
+
+```bash
+REJ=$(raw "$B/posts/$ARCTIC/images?limit=3" | grep -o '"suggestionId":"[^"]*"' | head -1 | cut -d'"' -f4)
+api -X POST -H "Idempotency-Key: demo-approve-0003" $B/suggestions/$REJ/approve  # 409 GUARD_REJECTED
+```
+
+When you repeat the demo, use new Idempotency-Keys, because a key that was already used replays its first response.
+
+### Step 8: Cost tracking
+
+```bash
+api $B/costs/summary
+```
+
+> **Point out:** every model call is logged with its tokens, notional cost and outcome. The whole demo costs
+> about $0.04 at list prices and $0 on the free tier. A daily budget (`maxUsd`, `maxCalls`) is checked before
+> each call.
+
+### Step 9: Evaluation and tests
+
+Run these on the host, with the stack running and the corpus tagged:
 
 ```bash
 npm install
-npm run eval              # top-1 precision on eval/posts.json
+npm run eval              # top-1 precision on the 16 labeled posts in eval/posts.json
 npm run eval -- --sweep   # plus the T_SIM threshold sweep
 npm test                  # 90 unit tests
 ```
